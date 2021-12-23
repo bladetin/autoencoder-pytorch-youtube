@@ -4,8 +4,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
+import time 
 
-device_gpu = torch.device("cuda:1")
+device_gpu = torch.device("cuda:2")
 # print(torch.cuda.is_available())
 
 transform = transforms.ToTensor()
@@ -13,7 +14,7 @@ mnist_data = datasets.MNIST(
     root=".\data", train=True, download=True, transform=transform
 )
 data_loader = torch.utils.data.DataLoader(
-    dataset=mnist_data, batch_size=128, shuffle=True, num_workers=1,pin_memory=True
+    dataset=mnist_data, batch_size=128, shuffle=True, num_workers=4,pin_memory=True
 )
 
 # train_data -> data
@@ -70,7 +71,7 @@ outputs = []
 if __name__ == '__main__':
     for epoch in range(num_epochs):
         # for img in data_loader.dataset.data.cpu():
-
+        since = time.time()
         for i, (img, labels) in enumerate(data_loader):
             # img = img.reshape(-1, 28 * 28).to(device)
             img = torch.reshape(img, (-1, 28 * 28)).to(device_gpu)
@@ -83,6 +84,7 @@ if __name__ == '__main__':
 
         print(f"Epoch {epoch+1}, Loss:{loss.item():.4f}")
         outputs.append((epoch, img, recon))
+        print(f"Epoch {epoch+1}:{time.time()-since:.4f}")
 
     for k in range(0, num_epochs, 4):
         plt.figure(figsize=(9, 2))
