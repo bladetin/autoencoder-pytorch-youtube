@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import time 
 
 device_gpu = torch.device("cuda:2")
-# print(torch.cuda.is_available())
+print(torch.cuda.is_available())
 
 transform = transforms.ToTensor()
 mnist_data = datasets.MNIST(
