@@ -1,10 +1,12 @@
 import torch
 from torch._C import device
 import torch.nn as nn
+from torch.nn.modules import padding
+from torch.nn.modules.conv import Conv2d
 import torch.optim as optim
 from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
-import time 
+import time
 
 device_gpu = torch.device("cuda:2")
 print(torch.cuda.is_available())
@@ -14,7 +16,7 @@ mnist_data = datasets.MNIST(
     root=".\data", train=True, download=True, transform=transform
 )
 data_loader = torch.utils.data.DataLoader(
-    dataset=mnist_data, batch_size=128, shuffle=True, num_workers=4,pin_memory=True
+    dataset=mnist_data, batch_size=128, shuffle=True, num_workers=4, pin_memory=True
 )
 
 # train_data -> data
@@ -28,29 +30,56 @@ data_loader = torch.utils.data.DataLoader(
 # print(torch.min(images), torch.max(images))
 
 
+# class Autoencoder(nn.Module):
+#     def __init__(self) -> None:
+#         super().__init__()
+#         # N(batch_size), 784
+#         self.encoder = nn.Sequential(
+#             nn.Linear(28 * 28, 128),  # N,784->128
+#             nn.ReLU(),
+#             nn.Linear(128, 64),
+#             nn.ReLU(),
+#             nn.Linear(64, 12),
+#             nn.ReLU(),
+#             nn.Linear(12, 3),  # N,3
+#         )
+
+#         self.decoder = nn.Sequential(
+#             nn.Linear(3, 12),
+#             nn.ReLU(),
+#             nn.Linear(12, 64),
+#             nn.ReLU(),
+#             nn.Linear(64, 128),
+#             nn.ReLU(),
+#             nn.Linear(128, 28 * 28),
+#             nn.Sigmoid(),  # N,3->N,784
+#         )
+
+#     def forward(self, x):
+#         encoded = self.encoder(x)
+#         decoded = self.decoder(encoded)
+#         return decoded
+
 class Autoencoder(nn.Module):
     def __init__(self) -> None:
         super().__init__()
-        # N(batch_size), 784
         self.encoder = nn.Sequential(
-            nn.Linear(28 * 28, 128),  # N,784->128
+            nn.Conv2d(1, 16, 3, stride=2, padding=1),
             nn.ReLU(),
-            nn.Linear(128, 64),
+            nn.Conv2d(16, 32, 3, stride=2, padding=1),
             nn.ReLU(),
-            nn.Linear(64, 12),
-            nn.ReLU(),
-            nn.Linear(12, 3),  # N,3
+            nn.Conv2d(32, 64, 7)
         )
 
         self.decoder = nn.Sequential(
-            nn.Linear(3, 12),
+            nn.ConvTranspose2d(64, 32, 7),
             nn.ReLU(),
-            nn.Linear(12, 64),
+            nn.ConvTranspose2d(32, 16, 3, stride=2,
+                               padding=1, output_padding=1),
             nn.ReLU(),
-            nn.Linear(64, 128),
-            nn.ReLU(),
-            nn.Linear(128, 28 * 28),
-            nn.Sigmoid(),  # N,3->N,784
+            nn.ConvTranspose2d(16, 1, 3, stride=2,
+                               padding=1, output_padding=1),
+            nn.Sigmoid()  # N,3->N,784
         )
 
     def forward(self, x):
@@ -70,11 +99,9 @@ outputs = []
 
 if __name__ == '__main__':
     for epoch in range(num_epochs):
-        # for img in data_loader.dataset.data.cpu():
         since = time.time()
         for i, (img, labels) in enumerate(data_loader):
-            # img = img.reshape(-1, 28 * 28).to(device)
-            img = torch.reshape(img, (-1, 28 * 28)).to(device_gpu)
+            img = img.to(device_gpu)
             recon = model(img)
             loss = criterion(recon, img)
 
@@ -95,16 +122,11 @@ if __name__ == '__main__':
             if i >= 9:
                 break
             plt.subplot(2, 9, i + 1)
-            item = item.reshape(-1, 28, 28)
-            # plt.imshow(item[0])
 
         for i, item in enumerate(recon):
             if i >= 9:
                 break
             plt.subplot(2, 9, 9 + i + 1)
-            item = item.reshape(-1, 28, 28)
-            # plt.imshow(item[0])
 
     myfig = plt.gcf()
     myfig.savefig(".\figure\figure.png", dpi=300)
-
